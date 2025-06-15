@@ -6,10 +6,10 @@ A Streamlit web application that generates HTML code from natural language descr
 
 - 🎨 Generate HTML web apps from simple English descriptions
 - 🤖 Multiple AI generation methods:
-  - **DeepSeek Coder 6.7B** (primary - excellent for code generation)
+  - **Lightweight AI models** (DialoGPT Small, DistilGPT2) - Optimized for Streamlit
   - OpenAI GPT models (if API key provided)
-  - Lightweight transformer models (fallback)
   - Smart template-based generation (always available)
+  - Hybrid AI+Template enhancement for best results
 - 🚀 Live preview of generated HTML
 - 📥 Download generated code as HTML files
 - ☁️ Ready for Streamlit Cloud deployment
@@ -37,10 +37,10 @@ Or double-click `run_app.bat` on Windows.
 
 ### Optional: Add AI Model Support
 
-For enhanced AI generation with DeepSeek Coder model:
+For enhanced AI generation with lightweight models:
 
 ```bash
-pip install transformers torch accelerate
+pip install transformers torch
 ```
 
 For OpenAI API support, set your API key:
@@ -48,7 +48,7 @@ For OpenAI API support, set your API key:
 set OPENAI_API_KEY=your_api_key_here
 ```
 
-**Note**: DeepSeek Coder 6.7B provides excellent code generation but requires ~13GB of disk space and 8GB+ RAM.
+**Note**: Lightweight models (DialoGPT Small, DistilGPT2) are optimized for Streamlit and require minimal resources (~500MB disk space, ~2GB RAM).
 
 ## Usage
 
@@ -80,12 +80,12 @@ streamlit run app.py --server.address 0.0.0.0
 
 ## Architecture
 
-The app uses a multi-tier approach:
+The app uses a multi-tier approach optimized for Streamlit:
 
-1. **DeepSeek Coder 6.7B** (if installed) - State-of-the-art code generation
+1. **Lightweight AI models** (if installed) - DialoGPT Small/DistilGPT2 for fast generation
 2. **OpenAI API** (if configured) - High-quality AI generation
-3. **Local transformer models** (if installed) - Offline AI generation  
-4. **Smart templates** (always available) - Reliable fallback with intelligent matching
+3. **Hybrid AI+Template** - Combines AI creativity with template reliability
+4. **Smart templates** (always available) - Instant, professional results
 
 ## Requirements
 

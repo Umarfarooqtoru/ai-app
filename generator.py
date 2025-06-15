@@ -21,82 +21,69 @@ class HTMLGenerator:
         
         # Try to load DeepSeek Coder or fallback models
         self._try_load_simple_model()
-    
+      
     def _try_load_simple_model(self):
-        """Try to load AI models with multiple fallbacks"""
+        """Try to load lightweight AI models optimized for Streamlit"""
         try:
             import transformers
             from transformers import pipeline
             
-            st.info("🔄 Loading AI model for code generation...")
+            st.info("🔄 Loading lightweight AI model...")
             
-            # List of models to try in order (from best to most reliable)
-            models_to_try = [
+            # List of lightweight models optimized for Streamlit (in order of preference)
+            lightweight_models = [
                 {
-                    "name": "deepseek-ai/deepseek-coder-6.7b-instruct",
-                    "display_name": "DeepSeek Coder 6.7B",
-                    "max_length": 2048,
-                    "temperature": 0.3,
-                    "model_id": "deepseek-coder"
-                },
-                {
-                    "name": "microsoft/DialoGPT-medium",
-                    "display_name": "Microsoft DialoGPT Medium", 
-                    "max_length": 512,
+                    "name": "microsoft/DialoGPT-small",
+                    "display_name": "DialoGPT Small",
+                    "max_length": 256,
                     "temperature": 0.7,
-                    "model_id": "dialogpt"
+                    "model_id": "dialogpt-small"
                 },
                 {
                     "name": "distilgpt2",
                     "display_name": "DistilGPT2",
-                    "max_length": 512,
+                    "max_length": 256,
                     "temperature": 0.8,
                     "model_id": "distilgpt2"
                 },
                 {
                     "name": "gpt2",
-                    "display_name": "GPT2",
-                    "max_length": 512,
+                    "display_name": "GPT2 Base",
+                    "max_length": 256,
                     "temperature": 0.8,
                     "model_id": "gpt2"
                 }
             ]
             
-            for model_config in models_to_try:
+            for model_config in lightweight_models:
                 try:
-                    st.info(f"🔄 Trying to load {model_config['display_name']}...")
+                    st.info(f"🔄 Loading {model_config['display_name']} (lightweight)...")
                     
-                    # Set timeout and retry parameters
-                    pipeline_kwargs = {
-                        "model": model_config["name"],
-                        "max_length": model_config["max_length"],
-                        "device_map": "auto" if model_config["model_id"] == "deepseek-coder" else None,
-                        "trust_remote_code": True if model_config["model_id"] == "deepseek-coder" else False
-                    }
+                    # Use CPU-only, lightweight configuration
+                    self.generator = pipeline(
+                        "text-generation",
+                        model=model_config["name"],
+                        device=-1,  # Force CPU usage
+                        model_kwargs={"low_cpu_mem_usage": True}
+                    )
                     
-                    # Add timeout for model loading
-                    import requests
-                    requests.adapters.DEFAULT_TIMEOUT = 30
-                    
-                    self.generator = pipeline("text-generation", **pipeline_kwargs)
                     self.model_name = model_config["model_id"]
                     self.model_config = model_config
                     
                     st.success(f"✅ {model_config['display_name']} loaded successfully!")
+                    st.info("💡 Using lightweight model optimized for Streamlit performance")
                     return
                     
                 except Exception as e:
                     error_msg = str(e)
                     if "429" in error_msg or "rate limit" in error_msg.lower():
-                        st.warning(f"⚠️ {model_config['display_name']}: Rate limited by Hugging Face. Trying next model...")
-                    elif "timeout" in error_msg.lower():
-                        st.warning(f"⚠️ {model_config['display_name']}: Download timeout. Trying next model...")
+                        st.warning(f"⚠️ {model_config['display_name']}: Rate limited. Trying next model...")
                     else:
                         st.warning(f"⚠️ {model_config['display_name']}: {error_msg}")
                     continue
             
             # If all models fail, fall back to template generation
-            st.warning("⚠️ All AI models unavailable due to rate limits or errors. Using template-based generation.")
+            st.warning("⚠️ Lightweight AI models unavailable. Using optimized template generation.")
             self.generator = None
             self.model_name = "template"
             
@@ -601,71 +588,68 @@ HTML:
         except Exception as e:
             st.error(f"OpenAI generation error: {str(e)}")
             return None
-    
+      
     def _generate_with_simple_model(self, description):
-        """Generate HTML using transformer model with optimized prompts"""
+        """Generate HTML using lightweight transformer model optimized for Streamlit"""
         try:
             if not hasattr(self, 'model_config'):
                 # Fallback config for older instances
                 self.model_config = {
-                    "max_length": 512,
+                    "max_length": 256,
                     "temperature": 0.8,
                     "model_id": self.model_name
                 }
             
-            if self.model_name == "deepseek-coder":
-                # Use DeepSeek Coder specific prompt format
-                prompt = f"""<|begin▁of▁sentence|>You are an expert web developer. Create a complete, functional HTML application.
+            # Use optimized prompt for lightweight models
+            prompt = f"""Create HTML app: {description}
 
-Task: {description}
-
-Requirements:
-- Complete HTML document with DOCTYPE, head, and body
-- Modern CSS styling with responsive design  
-- JavaScript functionality where needed
-- Professional appearance and user experience
-- All code in a single HTML file
-
-```html
+HTML:
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>"""
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{description.title()}</title>
+<style>
+body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+.container {{ max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+h1 {{ color: #333; text-align: center; }}
+button {{ background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }}
+button:hover {{ background: #0056b3; }}
+input, textarea {{ width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>"""
+            
+            # Generate with lightweight parameters
+            try:
+                result = self.generator(
+                    prompt, 
+                    max_length=self.model_config["max_length"], 
+                    num_return_sequences=1, 
+                    temperature=self.model_config["temperature"],
+                    do_sample=True,
+                    pad_token_id=50256,  # Standard GPT2 pad token
+                    truncation=True
+                )
                 
-            else:
-                # Use optimized prompt for other models
-                prompt = f"""Create a complete HTML web application for: {description}
-
-Make it include:
-- Modern CSS styling
-- Interactive JavaScript
-- Responsive design
-- Professional look
-
-HTML code:
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>"""
-            
-            # Generate with model-specific parameters
-            result = self.generator(
-                prompt, 
-                max_length=self.model_config["max_length"], 
-                num_return_sequences=1, 
-                temperature=self.model_config["temperature"],
-                do_sample=True,
-                pad_token_id=self.generator.tokenizer.eos_token_id if hasattr(self.generator, 'tokenizer') else None
-            )
-            
-            generated_text = result[0]['generated_text']
-            
-            # Clean and extract HTML
-            return self.clean_generated_html(generated_text)
+                generated_text = result[0]['generated_text']
+                
+                # Clean and extract HTML
+                html_result = self.clean_generated_html(generated_text)
+                
+                # If AI generation is too short or incomplete, enhance with template
+                if len(html_result) < 500 or not html_result.strip().endswith('</html>'):
+                    st.info("🔄 Enhancing AI output with template structure...")
+                    return self._enhance_ai_with_template(description, html_result)
+                
+                return html_result
+                
+            except Exception as e:
+                st.warning(f"AI generation issue: {str(e)}. Using template fallback.")
+                return None
             
         except Exception as e:
             st.error(f"Model generation error: {str(e)}")
@@ -789,6 +773,31 @@ HTML code:
     </script>
 </body>
 </html>"""
+    
+    def _enhance_ai_with_template(self, description, ai_output):
+        """Enhance incomplete AI output by combining with template structure"""
+        try:
+            # Get the best template match
+            template_type = self._match_description_to_template(description)
+            template = self.templates.get(template_type, self.templates['calculator'])
+            
+            # Extract any useful content from AI output
+            if ai_output and len(ai_output) > 100:
+                # Try to extract title or styling ideas from AI output
+                if '<title>' in ai_output:
+                    title_match = re.search(r'<title>(.*?)</title>', ai_output, re.IGNORECASE)
+                    if title_match:
+                        custom_title = title_match.group(1)
+                        template = template.replace('<title>Calculator App</title>', f'<title>{custom_title}</title>')
+                        template = template.replace('<title>To-Do List App</title>', f'<title>{custom_title}</title>')
+                        template = template.replace('<title>Contact Form</title>', f'<title>{custom_title}</title>')
+            
+            # Customize the template with description
+            return self._customize_template(template, description)
+            
+        except Exception as e:
+            st.warning(f"Template enhancement error: {str(e)}")
+            return self.create_fallback_html(description)
     
     def generate_html(self, user_description):
         """Generate HTML code based on user description"""

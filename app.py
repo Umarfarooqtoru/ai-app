@@ -19,19 +19,17 @@ generator = load_generator()
 
 # Display model status
 if hasattr(generator, 'model_name'):
-    if generator.model_name == "deepseek-coder":
-        st.success("🚀 Using DeepSeek Coder 6.7B for high-quality code generation")
-    elif generator.model_name == "dialogpt":
-        st.info("🤖 Using Microsoft DialoGPT for AI generation")
+    if generator.model_name == "dialogpt-small":
+        st.success("🚀 Using DialoGPT Small - Lightweight AI optimized for Streamlit")
     elif generator.model_name == "distilgpt2":
-        st.info("⚡ Using DistilGPT2 model for lightweight AI generation")
+        st.info("⚡ Using DistilGPT2 - Fast and efficient AI generation")
     elif generator.model_name == "gpt2":
-        st.info("🔄 Using GPT2 model for AI generation")
+        st.info("🔄 Using GPT2 Base - Reliable AI text generation")
     elif generator.use_openai:
         st.success("🤖 OpenAI API available for generation")
     else:
         st.info("📋 Using smart template-based generation")
-        st.info("💡 Tip: AI models may be rate-limited. Templates provide reliable, high-quality results!")
+        st.info("💡 Templates provide instant, reliable results optimized for web apps!")
 
 # Main app interface
 st.title("🎨 AI HTML Generator")
