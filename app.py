@@ -21,16 +21,37 @@ generator = load_generator()
 if hasattr(generator, 'model_name'):
     if generator.model_name == "deepseek-coder":
         st.success("🚀 Using DeepSeek Coder 6.7B for high-quality code generation")
+    elif generator.model_name == "dialogpt":
+        st.info("🤖 Using Microsoft DialoGPT for AI generation")
     elif generator.model_name == "distilgpt2":
-        st.info("⚡ Using lightweight DistilGPT2 model")
+        st.info("⚡ Using DistilGPT2 model for lightweight AI generation")
+    elif generator.model_name == "gpt2":
+        st.info("🔄 Using GPT2 model for AI generation")
     elif generator.use_openai:
         st.success("🤖 OpenAI API available for generation")
     else:
         st.info("📋 Using smart template-based generation")
+        st.info("💡 Tip: AI models may be rate-limited. Templates provide reliable, high-quality results!")
 
 # Main app interface
 st.title("🎨 AI HTML Generator")
 st.markdown("Generate beautiful HTML web apps from simple English descriptions using AI")
+
+# Show rate limit information if using templates
+if hasattr(generator, 'model_name') and generator.model_name == "template":
+    with st.expander("ℹ️ About Template-Based Generation", expanded=False):
+        st.markdown("""
+        **Smart Template Generation Active**
+        
+        - 🎯 **Intelligent matching**: Analyzes your description to select the best template
+        - 🎨 **Professional designs**: Calculator, Todo List, Contact Form, and more
+        - ⚡ **Instant results**: No waiting for model downloads or API calls
+        - 🔄 **Always reliable**: Works even when AI models are rate-limited
+        
+        *AI models may return later when rate limits reset!*
+        """)
+
+st.markdown("---")
 
 # Create two columns for layout
 col1, col2 = st.columns([1, 1])

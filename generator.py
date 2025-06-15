@@ -21,42 +21,91 @@ class HTMLGenerator:
         
         # Try to load DeepSeek Coder or fallback models
         self._try_load_simple_model()
-      
+    
     def _try_load_simple_model(self):
-        """Try to load a simple model without heavy dependencies"""
+        """Try to load AI models with multiple fallbacks"""
         try:
-            # Try to import and use DeepSeek Coder model (best for code generation)
             import transformers
             from transformers import pipeline
             
-            st.info("🔄 Loading DeepSeek Coder model for high-quality HTML generation...")
+            st.info("🔄 Loading AI model for code generation...")
             
-            # First try DeepSeek Coder model
-            try:
-                self.generator = pipeline(
-                    "text-generation", 
-                    model="deepseek-ai/deepseek-coder-6.7b-instruct",
-                    max_length=2048,
-                    device_map="auto",
-                    trust_remote_code=True
-                )
-                st.success("✅ DeepSeek Coder 6.7B model loaded successfully!")
-                self.model_name = "deepseek-coder"
-                return
-            except Exception as e:
-                st.warning(f"⚠️ DeepSeek model not available: {str(e)}. Trying fallback...")
+            # List of models to try in order (from best to most reliable)
+            models_to_try = [
+                {
+                    "name": "deepseek-ai/deepseek-coder-6.7b-instruct",
+                    "display_name": "DeepSeek Coder 6.7B",
+                    "max_length": 2048,
+                    "temperature": 0.3,
+                    "model_id": "deepseek-coder"
+                },
+                {
+                    "name": "microsoft/DialoGPT-medium",
+                    "display_name": "Microsoft DialoGPT Medium", 
+                    "max_length": 512,
+                    "temperature": 0.7,
+                    "model_id": "dialogpt"
+                },
+                {
+                    "name": "distilgpt2",
+                    "display_name": "DistilGPT2",
+                    "max_length": 512,
+                    "temperature": 0.8,
+                    "model_id": "distilgpt2"
+                },
+                {
+                    "name": "gpt2",
+                    "display_name": "GPT2",
+                    "max_length": 512,
+                    "temperature": 0.8,
+                    "model_id": "gpt2"
+                }
+            ]
             
-            # Fallback to smaller model
-            self.generator = pipeline("text-generation", model="distilgpt2", max_length=512)
-            st.success("✅ Lightweight fallback model loaded successfully!")
-            self.model_name = "distilgpt2"
+            for model_config in models_to_try:
+                try:
+                    st.info(f"🔄 Trying to load {model_config['display_name']}...")
+                    
+                    # Set timeout and retry parameters
+                    pipeline_kwargs = {
+                        "model": model_config["name"],
+                        "max_length": model_config["max_length"],
+                        "device_map": "auto" if model_config["model_id"] == "deepseek-coder" else None,
+                        "trust_remote_code": True if model_config["model_id"] == "deepseek-coder" else False
+                    }
+                    
+                    # Add timeout for model loading
+                    import requests
+                    requests.adapters.DEFAULT_TIMEOUT = 30
+                    
+                    self.generator = pipeline("text-generation", **pipeline_kwargs)
+                    self.model_name = model_config["model_id"]
+                    self.model_config = model_config
+                    
+                    st.success(f"✅ {model_config['display_name']} loaded successfully!")
+                    return
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    if "429" in error_msg or "rate limit" in error_msg.lower():
+                        st.warning(f"⚠️ {model_config['display_name']}: Rate limited by Hugging Face. Trying next model...")
+                    elif "timeout" in error_msg.lower():
+                        st.warning(f"⚠️ {model_config['display_name']}: Download timeout. Trying next model...")
+                    else:
+                        st.warning(f"⚠️ {model_config['display_name']}: {error_msg}")
+                    continue
+            
+            # If all models fail, fall back to template generation
+            st.warning("⚠️ All AI models unavailable due to rate limits or errors. Using template-based generation.")
+            self.generator = None
+            self.model_name = "template"
             
         except ImportError:
             st.info("ℹ️ Transformers not available. Using smart template-based generation.")
             self.generator = None
             self.model_name = "template"
         except Exception as e:
-            st.warning(f"⚠️ AI model not available: {str(e)}. Using template-based generation.")
+            st.warning(f"⚠️ AI models not available: {str(e)}. Using template-based generation.")
             self.generator = None
             self.model_name = "template"
     
@@ -552,10 +601,18 @@ HTML:
         except Exception as e:
             st.error(f"OpenAI generation error: {str(e)}")
             return None
-      
+    
     def _generate_with_simple_model(self, description):
-        """Generate HTML using simple transformer model"""
+        """Generate HTML using transformer model with optimized prompts"""
         try:
+            if not hasattr(self, 'model_config'):
+                # Fallback config for older instances
+                self.model_config = {
+                    "max_length": 512,
+                    "temperature": 0.8,
+                    "model_id": self.model_name
+                }
+            
             if self.model_name == "deepseek-coder":
                 # Use DeepSeek Coder specific prompt format
                 prompt = f"""<|begin▁of▁sentence|>You are an expert web developer. Create a complete, functional HTML application.
@@ -564,7 +621,7 @@ Task: {description}
 
 Requirements:
 - Complete HTML document with DOCTYPE, head, and body
-- Modern CSS styling with responsive design
+- Modern CSS styling with responsive design  
 - JavaScript functionality where needed
 - Professional appearance and user experience
 - All code in a single HTML file
@@ -577,19 +634,33 @@ Requirements:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>"""
                 
-                result = self.generator(
-                    prompt, 
-                    max_length=2048, 
-                    num_return_sequences=1, 
-                    temperature=0.3,
-                    do_sample=True,
-                    pad_token_id=self.generator.tokenizer.eos_token_id
-                )
-                
             else:
-                # Use simple prompt for other models
-                prompt = f"Create an HTML web page for {description}. Start with <!DOCTYPE html>"
-                result = self.generator(prompt, max_length=200, num_return_sequences=1, temperature=0.8)
+                # Use optimized prompt for other models
+                prompt = f"""Create a complete HTML web application for: {description}
+
+Make it include:
+- Modern CSS styling
+- Interactive JavaScript
+- Responsive design
+- Professional look
+
+HTML code:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>"""
+            
+            # Generate with model-specific parameters
+            result = self.generator(
+                prompt, 
+                max_length=self.model_config["max_length"], 
+                num_return_sequences=1, 
+                temperature=self.model_config["temperature"],
+                do_sample=True,
+                pad_token_id=self.generator.tokenizer.eos_token_id if hasattr(self.generator, 'tokenizer') else None
+            )
             
             generated_text = result[0]['generated_text']
             
