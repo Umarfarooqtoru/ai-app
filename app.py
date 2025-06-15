@@ -17,6 +17,17 @@ def load_generator():
 
 generator = load_generator()
 
+# Display model status
+if hasattr(generator, 'model_name'):
+    if generator.model_name == "deepseek-coder":
+        st.success("🚀 Using DeepSeek Coder 6.7B for high-quality code generation")
+    elif generator.model_name == "distilgpt2":
+        st.info("⚡ Using lightweight DistilGPT2 model")
+    elif generator.use_openai:
+        st.success("🤖 OpenAI API available for generation")
+    else:
+        st.info("📋 Using smart template-based generation")
+
 # Main app interface
 st.title("🎨 AI HTML Generator")
 st.markdown("Generate beautiful HTML web apps from simple English descriptions using AI")
